@@ -84,6 +84,34 @@ def chat(prompt, model="gemini-2.5-flash"):
         return None
 
 
+def ask_genai(user_message: str, history: list[dict[str, str]]) -> str:
+    """Compatibility wrapper for labs that expect the starter's ask_genai().
+
+    Converts the starter-client signature (user_message + history) into a
+    single prompt string for chat(). Multi-turn conversation state is
+    preserved by combining history with the new message.
+
+    Args:
+        user_message: The latest user prompt.
+        history: Previous conversation turns as {"role", "content"} dicts.
+
+    Returns:
+        The model's response text, or an error string on failure.
+    """
+    parts = []
+    for turn in history:
+        role = turn.get("role", "unknown")
+        content = turn.get("content", "")
+        parts.append(f"[{role}]: {content}")
+    parts.append(f"[user]: {user_message}")
+    combined = "\n".join(parts)
+
+    result = chat(combined)
+    if result is None:
+        return "Error: API call failed. Check your GOOGLE_API_KEY."
+    return result
+
+
 def main():
     """Demonstrate the chat function with several example prompts."""
     print("=" * 60)
