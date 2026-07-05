@@ -1,103 +1,129 @@
-"""Week 6 Lab 2 starter: generic GenAI API client.
+#!/usr/bin/env python3
+"""
+A simple generative AI API client using the Google Gemini API.
 
-This file is deliberately provider-neutral. Your tutor will tell you which
-endpoint and API key to use. Do not hard-code API keys in this file.
+This module demonstrates how to call an LLM from Python code — sending a prompt,
+receiving a generated response, and handling the result.
 
-The starter uses environment variables:
-- GENAI_API_ENDPOINT
-- GENAI_API_KEY
+Requirements:
+    pip install google-genai
 
-If those are not set, the program runs in dry-run mode so you can inspect the
-request body without sending anything.
+Authentication:
+    Obtain a free API key from Google AI Studio (see Appendix C in the book).
+    Set it as an environment variable:
+        export GOOGLE_API_KEY="your-key-here"
+
+    To use OpenAI instead:
+        pip install openai
+        Replace the Client creation and API call with:
+            from openai import OpenAI
+            client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+            response = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.choices[0].message.content
 """
 
-from __future__ import annotations
-
-import json
 import os
-import urllib.error
-import urllib.request
-from typing import Any
+import sys
 
 
-SYSTEM_PROMPT = "You are a helpful teaching assistant for first-year programming students."
-
-
-def build_request_body(messages: list[dict[str, str]]) -> dict[str, Any]:
-    """Build a common chat-style request body.
-
-    Your tutor may ask you to adjust this shape for the university endpoint.
+def chat(prompt, model="gemini-2.5-flash"):
     """
-    return {
-        "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": 200,
-    }
+    Send a single prompt to the Gemini API and return the response text.
+
+    Args:
+        prompt: The user prompt string.
+        model: The Gemini model to use. Default is gemini-2.5-flash.
+
+    Returns:
+        The model's response as a string, or None on error.
+    """
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        print("Error: GOOGLE_API_KEY environment variable is not set.", file=sys.stderr)
+        print("See Appendix C for instructions on obtaining a free API key.", file=sys.stderr)
+        # To use OpenAI instead, replace the above with:
+        # api_key = os.environ.get("OPENAI_API_KEY")
+        # if not api_key:
+        #     print("Error: OPENAI_API_KEY environment variable is not set.", file=sys.stderr)
+        return None
+
+    try:
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+        # To use OpenAI instead, replace the above two lines with:
+        # from openai import OpenAI
+        # client = OpenAI(api_key=api_key)
+
+        response = client.models.generate_content(
+            model=model,
+            contents=prompt,
+        )
+        return response.text
+        # To use OpenAI instead, replace the above with:
+        # response = client.chat.completions.create(
+        #     model="gpt-4.1-mini",
+        #     messages=[{"role": "user", "content": prompt}],
+        # )
+        # return response.choices[0].message.content
+
+    except ImportError:
+        print(
+            "Error: The google-genai package is not installed.",
+            file=sys.stderr,
+        )
+        print("Install it with:  pip install google-genai", file=sys.stderr)
+        # To use OpenAI instead:
+        # print("Install it with:  pip install openai", file=sys.stderr)
+        return None
+    except Exception as e:
+        print(f"API call failed: {e}", file=sys.stderr)
+        return None
 
 
-def send_request(endpoint: str, api_key: str, body: dict[str, Any]) -> dict[str, Any]:
-    """Send a JSON request and return the parsed JSON response."""
-    data = json.dumps(body).encode("utf-8")
-    request = urllib.request.Request(
-        endpoint,
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-        },
-        method="POST",
+def main():
+    """Demonstrate the chat function with several example prompts."""
+    print("=" * 60)
+    print("GenAI API Client Demo (Google Gemini)")
+    print("=" * 60)
+
+    # --- Example 1: Creative generation ---
+    print("\n--- Example 1: Creative generation ---")
+    prompt = "Write a haiku about a programmer learning to code."
+    response = chat(prompt)
+    if response:
+        print(f"Prompt: {prompt}")
+        print(f"Response:\n{response}")
+    else:
+        print("No response received.")
+
+    # --- Example 2: Factual question ---
+    print("\n--- Example 2: Factual question ---")
+    prompt = "In one sentence, what is a transformer in the context of AI?"
+    response = chat(prompt)
+    if response:
+        print(f"Prompt: {prompt}")
+        print(f"Response:\n{response}")
+    else:
+        print("No response received.")
+
+    # --- Example 3: Code help ---
+    print("\n--- Example 3: Code help ---")
+    prompt = (
+        "Write a Python function called fibonacci(n) that returns the nth "
+        "Fibonacci number. Include a brief docstring. Return only the "
+        "function, without any explanation."
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        return json.loads(response.read().decode("utf-8"))
-
-
-def extract_text(response_json: dict[str, Any]) -> str:
-    """Extract text from a typical chat-completion response.
-
-    If your endpoint returns a different JSON shape, adapt this function only.
-    """
-    try:
-        return response_json["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, TypeError):
-        return json.dumps(response_json, indent=2)
-
-
-def ask_genai(user_message: str, history: list[dict[str, str]]) -> str:
-    """Send one user message while preserving a simple conversation history."""
-    endpoint = os.getenv("GENAI_API_ENDPOINT")
-    api_key = os.getenv("GENAI_API_KEY")
-
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
-    messages.append({"role": "user", "content": user_message})
-    body = build_request_body(messages)
-
-    if not endpoint or not api_key:
-        return "DRY RUN: set GENAI_API_ENDPOINT and GENAI_API_KEY to send this request:\n" + json.dumps(body, indent=2)
-
-    try:
-        response_json = send_request(endpoint, api_key, body)
-    except urllib.error.URLError as error:
-        return f"API request failed: {error}"
-
-    return extract_text(response_json)
-
-
-def run_chat() -> None:
-    """Run a small API-backed chat loop."""
-    history: list[dict[str, str]] = []
-    print("GenAI API chatbot. Type 'quit' to stop.")
-    print("Do not paste passwords, API keys, or personal data into prompts.")
-
-    while True:
-        user_message = input("You: ")
-        if user_message.lower().strip() in {"quit", "exit", "bye"}:
-            print("Bot: Goodbye.")
-            break
-        reply = ask_genai(user_message, history)
-        print("Bot:", reply)
-        history.append({"role": "user", "content": user_message})
-        history.append({"role": "assistant", "content": reply})
+    response = chat(prompt)
+    if response:
+        print(f"Prompt: {prompt}")
+        print(f"Response:\n{response}")
+    else:
+        print("No response received.")
 
 
 if __name__ == "__main__":
-    run_chat()
+    main()
