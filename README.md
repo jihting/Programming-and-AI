@@ -1,7 +1,7 @@
-# Programming and AI — Companion Code and Data
+# Introduction to Programming and Artificial Intelligence — Companion Code and Data
 
 This repository contains the code examples and data files referenced in the
-textbook **Programming and AI** by Jeffrey Ting.
+textbook **Introduction to Programming and Artificial Intelligence** by Jeffrey Ting.
 
 ## Structure
 
