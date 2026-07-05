@@ -1,0 +1,27 @@
+{
+  "hello": [
+    "Hello. What would you like to talk about?",
+    "Hi there. How can I help?"
+  ],
+  "study": [
+    "Study works best when you break the task into small pieces.",
+    "Tell me which topic you are studying and I will try to respond."
+  ],
+  "python": [
+    "Python is a useful language for learning programming and AI.",
+    "If Python gives an error, read the final line of the traceback first."
+  ],
+  "ai": [
+    "AI systems can be useful, but their outputs still need checking.",
+    "AI is not magic. It is a set of techniques with strengths and limits."
+  ],
+  "stress": [
+    "Take a short pause, then choose one small next action.",
+    "If you are stuck, write down what you expected and what actually happened."
+  ],
+  "default": [
+    "I am not sure how to respond to that yet.",
+    "Can you rephrase that using one of my known topics?",
+    "That is outside my current rule set."
+  ]
+}
